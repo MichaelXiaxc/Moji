@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+preview.png
+control-status.png
+.env
+.env.*
+!.env.example
