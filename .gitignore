@@ -6,3 +6,4 @@ control-status.png
 .env
 .env.*
 !.env.example
+design-preview.png
