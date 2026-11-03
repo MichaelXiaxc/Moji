@@ -1989,3 +1989,23 @@ input[type="checkbox"],
 .stage:has(#canvas[data-panning="true"]) {
   cursor: grabbing;
 }
+.single-line-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 5px 0 14px;
+  padding: 10px;
+  background: #e5e5e3;
+  border: 1px solid #c8c8c5;
+  font-size: 11px;
+  cursor: pointer;
+}
+.single-line-toggle input {
+  margin: 1px 0 0;
+}
+.single-line-toggle small {
+  display: block;
+  font-size: 9px;
+  color: #7b7b77;
+  margin-top: 3px;
+}

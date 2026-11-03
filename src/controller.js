@@ -1,3 +1,4 @@
+import { bundledFonts } from "./fonts.js";
 import {
   bounds,
   world,
@@ -427,15 +428,112 @@ export function initController() {
     path.remove();
     return p;
   }
-  $("fontFile").onchange = guard(async (e) => {
-    font = opentype.parse(await e.target.files[0].arrayBuffer());
-    $("fontName").textContent = e.target.files[0].name;
+  let fontVersion = 0,
+    fontKey = "",
+    currentFontLoad = null;
+  const fontBuffers = new Map();
+  let customFont = null;
+  let skeletonWorker = null,
+    requestId = 0;
+  const requests = new Map();
+  function skeletonize(glyphs) {
+    if (!skeletonWorker) {
+      skeletonWorker = new Worker(
+        new URL("./skeleton-worker.js", import.meta.url),
+        { type: "module" },
+      );
+      skeletonWorker.onmessage = ({ data }) => {
+        const pending = requests.get(data.id);
+        if (!pending) return;
+        requests.delete(data.id);
+        data.error
+          ? pending.reject(Error(data.error))
+          : pending.resolve(data.result);
+      };
+      skeletonWorker.onerror = () => {
+        for (const pending of requests.values())
+          pending.reject(Error("单线提取失败，请重试或关闭单线模式"));
+        requests.clear();
+        skeletonWorker.terminate();
+        skeletonWorker = null;
+      };
+    }
+    return new Promise((resolve, reject) => {
+      const id = ++requestId;
+      requests.set(id, { resolve, reject });
+      skeletonWorker.postMessage({ id, glyphs });
+    });
+  }
+  async function loadWritingFont(id) {
+    const version = ++fontVersion;
+    font = null;
+    const entry = bundledFonts.find((f) => f.id === id),
+      label = entry?.name || customFont?.name;
+    $("fontName").textContent = "正在加载 " + (label || "自定义字体") + "…";
+    try {
+      let buffer;
+      if (id === "custom") {
+        if (!customFont) throw Error("请先导入 TTF / OTF 字体文件");
+        buffer = customFont.buffer;
+      } else {
+        if (!entry) throw Error("未知字体");
+        if (!fontBuffers.has(id)) {
+          const response = await fetch(
+            import.meta.env.BASE_URL + "fonts/" + id + "/font.ttf",
+          );
+          if (!response.ok) throw Error("内置字体加载失败：" + response.status);
+          fontBuffers.set(id, await response.arrayBuffer());
+        }
+        buffer = fontBuffers.get(id);
+      }
+      const parsed = opentype.parse(buffer);
+      parsed.variation?.set({ wght: 400 });
+      if (version !== fontVersion) return;
+      font = parsed;
+      fontKey = id === "custom" ? "custom-" + version : id;
+      $("fontName").textContent = label;
+      try {
+        const family = "MojiWriting" + version,
+          face = new FontFace(family, buffer);
+        await face.load();
+        if (version === fontVersion) {
+          document.fonts.add(face);
+          $("text").style.fontFamily = '"' + family + '", sans-serif';
+        }
+      } catch {
+        /* Outline generation can still use the parsed font. */
+      }
+    } catch (error) {
+      if (version === fontVersion) {
+        font = null;
+        $("fontName").textContent = error.message;
+      }
+      throw error;
+    }
+  }
+  $("fontChoice").onchange = guard(() => {
+    currentFontLoad = loadWritingFont($("fontChoice").value);
+    return currentFontLoad;
   });
+  $("fontFile").onchange = guard(async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    customFont = { name: file.name, buffer: await file.arrayBuffer() };
+    $("fontChoice").value = "custom";
+    currentFontLoad = loadWritingFont("custom");
+    await currentFontLoad;
+  });
+  currentFontLoad = loadWritingFont("noto-sans-sc");
+  currentFontLoad.catch((error) => toast(error.message));
   $("txtFile").onchange = guard(async (e) => {
     $("text").value = await e.target.files[0].text();
   });
-  $("addText").onclick = guard(() => {
-    if (!font) throw Error("请先导入字体文件");
+  $("addText").onclick = guard(async () => {
+    if (currentFontLoad) await currentFontLoad;
+    if (!font) throw Error("请先选择或导入字体");
+    const textFont = font,
+      version = fontVersion,
+      mode = $("singleLine").checked;
     const size = num("fontSize"),
       gap = num("lineGap"),
       cols = num("columns"),
@@ -461,20 +559,75 @@ export function initController() {
     for (const ch of lines.join(""))
       if (!font.charToGlyphIndex(ch) && !/^\s$/.test(ch))
         throw Error(`当前字体缺少字符：${ch}`);
-    const widths = lines.map((t) => font.getAdvanceWidth(t, size)),
+    const widths = lines.map((t) => textFont.getAdvanceWidth(t, size)),
       width = Math.max(...widths),
       paths = [];
-    lines.forEach((t, i) => {
-      const x =
-        $("align").value === "center"
-          ? (width - widths[i]) / 2
-          : $("align").value === "right"
-            ? width - widths[i]
-            : 0;
-      const d = font.getPath(t, x, size + i * (size + gap), size).toPathData(3);
-      for (const sub of d.match(/M[^M]*/gi) || []) paths.push(samplePath(sub));
-    });
-    add("文字 · " + $("text").value.slice(0, 10), paths);
+    const alignment = $("align").value;
+    const left = (i) =>
+      alignment === "center"
+        ? (width - widths[i]) / 2
+        : alignment === "right"
+          ? width - widths[i]
+          : 0;
+    const name =
+      "文字 · " + $("text").value.slice(0, 10) + (mode ? " / 单线" : "");
+    if (!mode) {
+      lines.forEach((t, i) => {
+        const d = textFont
+          .getPath(t, left(i), size + i * (size + gap), size)
+          .toPathData(3);
+        for (const sub of d.match(/M[^M]*/gi) || [])
+          paths.push(samplePath(sub));
+      });
+    } else {
+      const button = $("addText");
+      button.disabled = true;
+      const previous = [...button.childNodes];
+      button.textContent = "正在提取单线…";
+      try {
+        const glyphs = [],
+          placements = [],
+          seen = new Set();
+        lines.forEach((t, i) => {
+          textFont.forEachGlyph(
+            t,
+            left(i),
+            size + i * (size + gap),
+            size,
+            {},
+            (glyph, x, y) => {
+              const key = fontKey + ":" + glyph.index;
+              placements.push({ key, x, y });
+              if (!seen.has(key)) {
+                seen.add(key);
+                const path = glyph.getPath(0, 0, 128, {}, textFont);
+                glyphs.push({
+                  key,
+                  d: path.toPathData(4),
+                  box: path.getBoundingBox(),
+                });
+              }
+            },
+          );
+        });
+        const skeletons = await skeletonize(glyphs);
+        if (version !== fontVersion)
+          throw Error("字体已改变，请重新生成文字路径");
+        for (const { key, x, y } of placements)
+          for (const path of skeletons[key] || [])
+            paths.push(
+              path.map(([px, py]) => [
+                x + (px * size) / 128,
+                y + (py * size) / 128,
+              ]),
+            );
+      } finally {
+        button.disabled = false;
+        button.replaceChildren(...previous);
+      }
+    }
+    if (!paths.length) throw Error("没有可生成的文字路径");
+    add(name, paths);
   });
   $("svgFile").onchange = guard(async (e) => {
     const doc = new DOMParser().parseFromString(
@@ -1227,6 +1380,10 @@ export function initController() {
   return () => {
     stage.removeEventListener("wheel", wheelZoom);
     stage.onpointerdown = null;
+    skeletonWorker?.terminate();
+    for (const pending of requests.values())
+      pending.reject(Error("工作台已关闭"));
+    requests.clear();
     document.removeEventListener("keydown", handleEscape);
     paperObserver.disconnect();
     clearInterval(poll);

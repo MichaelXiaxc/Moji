@@ -1,3 +1,4 @@
+import { bundledFonts } from "./fonts.js";
 import React, { useEffect, useState } from "react";
 import { initController } from "./controller.js";
 
@@ -224,6 +225,17 @@ export default function App() {
                   placeholder="输入想写下的文字…"
                 />
               </label>
+              <label className="field" htmlFor="fontChoice">
+                <span>书写字体</span>
+                <select id="fontChoice" defaultValue="noto-sans-sc">
+                  {bundledFonts.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} / {f.category}
+                    </option>
+                  ))}
+                  <option value="custom">自定义导入字体</option>
+                </select>
+              </label>
               <div className="file-pair">
                 <FileButton id="txtFile" accept=".txt">
                   ＋ 文本文件
@@ -233,7 +245,7 @@ export default function App() {
                 </FileButton>
               </div>
               <small id="fontName" className="font-note">
-                载入 TTF / OTF 字体以生成路径
+                内置字体准备中…
               </small>
               <div className="two">
                 <Field id="fontSize" label="字号 / mm" value={8} min={1} />
@@ -261,10 +273,18 @@ export default function App() {
                 min={0}
                 step="1"
               />
+              <label className="single-line-toggle">
+                <input id="singleLine" type="checkbox" />
+                <span>
+                  单线书写<small>骨架近似 · 非真实笔顺</small>
+                </span>
+              </label>
               <button id="addText" className="primary full">
                 生成文字路径 <span>↗</span>
               </button>
-              <p className="hint">普通字体沿字形轮廓描边，非单线笔顺。</p>
+              <p className="hint">
+                关闭单线：轮廓描边。开启单线：提取字形中轴线，交叉、连笔与书写顺序可能不等同真实笔画。
+              </p>
             </Pane>
             <Pane id="vector" active={tool === "vector"}>
               <div className="vector-art" aria-hidden="true">
