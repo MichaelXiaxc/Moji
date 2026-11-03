@@ -340,72 +340,76 @@ export default function App() {
             <span className="tiny-cross">✳</span> COMPOSITION MODULE / 01
           </div>
         </aside>
-        <main className="studio">
-          <div className="studio-title">
-            <div>
-              <span className="eyebrow">WORKSPACE / 01 — LOCAL OPERATIONS</span>
-              <h1>
-                书写作业<span className="title-slash">//</span>
-              </h1>
-              <span className="workspace-subtitle">
-                将数字路径，转化为纸面上的每一笔。
+        <div className="studio-column">
+          <main className="studio">
+            <div className="studio-title">
+              <div>
+                <span className="eyebrow">
+                  WORKSPACE / 01 — LOCAL OPERATIONS
+                </span>
+                <h1>
+                  书写作业<span className="title-slash">//</span>
+                </h1>
+                <span className="workspace-subtitle">
+                  将数字路径，转化为纸面上的每一笔。
+                </span>
+              </div>
+              <div className="studio-stamp">
+                <span className="stamp-cross" aria-hidden="true">
+                  ⌖
+                </span>
+                <strong>三轴协同</strong>
+                <span>XYZ / GRBL</span>
+              </div>
+            </div>
+            <div className="canvas-toolbar">
+              <span className="canvas-title">
+                <b>02</b> 书写版面
+              </span>
+              <div>
+                <button id="preview" aria-pressed="false">
+                  ◎ 路径预览
+                </button>
+                <button id="zoomOut" aria-label="缩小画布">
+                  −
+                </button>
+                <span id="zoomLabel" className="zoom-label">
+                  100%
+                </span>
+                <button id="zoomIn" aria-label="放大画布">
+                  ＋
+                </button>
+                <button id="fitCanvas" title="恢复纸面适配">
+                  ⤢ 适配
+                </button>
+              </div>
+            </div>
+            <div className="stage" id="stage">
+              <div className="ruler ruler-top" aria-hidden="true" />
+              <div className="ruler ruler-left" aria-hidden="true" />
+              <span className="stage-origin">0,0 ↘</span>
+              <span className="stage-label">PRECISION WRITING / TOP VIEW</span>
+              <div className="board">
+                <svg
+                  id="canvas"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 210 297"
+                  width="595"
+                  height="842"
+                  aria-label="毫米排版画布"
+                />
+              </div>
+              <span id="dimensions" className="dimension-tag">
+                210 × 297 mm
               </span>
             </div>
-            <div className="studio-stamp">
-              <span className="stamp-cross" aria-hidden="true">
-                ⌖
+            <div className="canvas-caption">
+              <span>
+                ↖ 左上原点 <b>X → / Y ↓</b>
               </span>
-              <strong>三轴协同</strong>
-              <span>XYZ / GRBL</span>
+              <span>滚轮缩放 · 放大后拖动空白平移</span>
             </div>
-          </div>
-          <div className="canvas-toolbar">
-            <span className="canvas-title">
-              <b>02</b> 书写版面
-            </span>
-            <div>
-              <button id="preview" aria-pressed="false">
-                ◎ 路径预览
-              </button>
-              <button id="zoomOut" aria-label="缩小画布">
-                −
-              </button>
-              <span id="zoomLabel" className="zoom-label">
-                100%
-              </span>
-              <button id="zoomIn" aria-label="放大画布">
-                ＋
-              </button>
-              <button id="fitCanvas" title="恢复纸面适配">
-                ⤢ 适配
-              </button>
-            </div>
-          </div>
-          <div className="stage" id="stage">
-            <div className="ruler ruler-top" aria-hidden="true" />
-            <div className="ruler ruler-left" aria-hidden="true" />
-            <span className="stage-origin">0,0 ↘</span>
-            <span className="stage-label">PRECISION WRITING / TOP VIEW</span>
-            <div className="board">
-              <svg
-                id="canvas"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 210 297"
-                width="595"
-                height="842"
-                aria-label="毫米排版画布"
-              />
-            </div>
-            <span id="dimensions" className="dimension-tag">
-              210 × 297 mm
-            </span>
-          </div>
-          <div className="canvas-caption">
-            <span>
-              ↖ 左上原点 <b>X → / Y ↓</b>
-            </span>
-            <span>滚轮缩放 · 放大后拖动空白平移</span>
-          </div>
+          </main>
           <section className="inspection" hidden={!panels.inspection}>
             <div className="inspection-heading">
               <span>叠加与检查</span>
@@ -491,7 +495,7 @@ export default function App() {
               </Pane>
             </div>
           </section>
-        </main>
+        </div>
         <div className="right-dock" hidden={!panels.machine && !panels.job}>
           <aside className="panel machine" hidden={!panels.machine}>
             <Heading
@@ -598,7 +602,8 @@ export default function App() {
                     ["height", "高度 / mm", 297],
                     ["up", "抬笔 Z / mm", -3],
                     ["down", "落笔 Z / mm", 0],
-                    ["feed", "书写 / mm/min", 800],
+                    ["feed", "书写速度 / mm/min", 800],
+                    ["travelFeed", "运笔速度 / mm/min", 1500],
                     ["zFeed", "Z 速度 / mm/min", 100],
                   ].map(([id, label, value]) => (
                     <Field key={id} id={id} label={label} value={value} />

@@ -2009,3 +2009,26 @@ input[type="checkbox"],
   color: #7b7b77;
   margin-top: 3px;
 }
+/* Inspection is a lower dock, outside the paper's height allocation. */
+.studio-column {
+  grid-area: studio;
+  min-width: 0;
+  width: 100%;
+}
+.studio-column > .studio {
+  position: relative;
+  top: auto;
+  width: 100%;
+}
+.studio-column > .inspection {
+  margin-top: 16px;
+  width: 100%;
+}
+@media (max-width: 650px) {
+  .studio-column {
+    order: 0;
+  }
+  .studio-column > .studio {
+    height: 720px;
+  }
+}

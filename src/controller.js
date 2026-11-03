@@ -48,10 +48,9 @@ export function initController() {
   const num = (id) => Number($(id).value),
     cfg = () =>
       Object.fromEntries(
-        ["width", "height", "up", "down", "feed", "zFeed"].map((id) => [
-          id,
-          num(id),
-        ]),
+        ["width", "height", "up", "down", "feed", "travelFeed", "zFeed"].map(
+          (id) => [id, num(id)],
+        ),
       );
   function log(s) {
     $("log").textContent += s + "\n";
@@ -1009,6 +1008,7 @@ export function initController() {
         )
       )
         throw Error("元素数据无效");
+    if (p.cfg && p.cfg.travelFeed === undefined) p.cfg.travelFeed = 1500;
     for (const k of Object.keys(cfg()))
       if (!Number.isFinite(p.cfg?.[k])) throw Error("工程参数无效");
     if (p.cfg.width <= 0 || p.cfg.height <= 0) throw Error("工作尺寸无效");
