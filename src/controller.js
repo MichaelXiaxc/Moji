@@ -238,13 +238,8 @@ export function initController() {
             g,
           );
     }
-    node("path", {
-      d: "M 0 5 V 0 H 5",
-      stroke: "#cf3427",
-      fill: "none",
-      "stroke-width": 0.7,
-    });
     fitPaper();
+    drawPaperRulers();
     drawSelection();
     $("layerCount").textContent = String(elements.length).padStart(2, "0");
     $("stage").dataset.populated = String(elements.length > 0);
@@ -256,7 +251,84 @@ export function initController() {
       b.onclick = () => select(e.id);
       $("layers").append(b);
     });
-    fitPaper();
+  }
+  function drawPaperRulers() {
+    const canvas = $("canvas");
+    canvas.querySelector(".paper-rulers")?.remove();
+    const { width, height } = canvas.viewBox.baseVal;
+    const matrix = canvas.getScreenCTM();
+    const pixelsPerMm = matrix && Math.hypot(matrix.a, matrix.b);
+    if (!(width > 0 && height > 0 && pixelsPerMm > 0)) return;
+
+    // The overlay uses screen-sized type and tick marks, positioned by paper coordinates.
+    const rulers = node("g", {
+      class: "paper-rulers",
+      transform: `scale(${1 / pixelsPerMm})`,
+      "pointer-events": "none",
+      role: "group",
+      "aria-label": "毫米标尺，左上角为笔起点 (0, 0)，X 向右，Y 向下",
+    });
+    const w = width * pixelsPerMm,
+      h = height * pixelsPerMm;
+    node("path", { d: `M0 -28H${w}V0H0Z`, class: "ruler-band" }, rulers);
+    node("path", { d: `M-49 0H0V${h}H-49Z`, class: "ruler-band" }, rulers);
+
+    const desired = Math.max(1, 48 / pixelsPerMm);
+    const magnitude = 10 ** Math.floor(Math.log10(desired));
+    const major = [1, 2, 5, 10]
+      .map((n) => n * magnitude)
+      .find((n) => n >= desired);
+    const minor = Math.max(1, major / (major === 2 * magnitude ? 4 : 5));
+    for (const [axis, length] of [
+      ["x", width],
+      ["y", height],
+    ]) {
+      const horizontal = axis === "x";
+      const scale = node("g", { "data-axis-ruler": axis }, rulers);
+      // Generate tick marks from zero so panning and zooming never change their values.
+      for (let i = 1; i * minor <= length; i++) {
+        const mm = i * minor;
+        const labeled = Math.abs(mm / major - Math.round(mm / major)) < 1e-8;
+        const position = mm * pixelsPerMm;
+        const tick = labeled ? 9 : 5;
+        node(
+          "line",
+          horizontal
+            ? { x1: position, x2: position, y1: 0, y2: -tick }
+            : { x1: 0, x2: -tick, y1: position, y2: position },
+          scale,
+        );
+        if (labeled) {
+          const label = horizontal
+            ? {
+                x: position,
+                y: -13,
+                "text-anchor":
+                  (length - mm) * pixelsPerMm < 14 ? "end" : "middle",
+              }
+            : {
+                x: -13,
+                y: position,
+                "text-anchor": "end",
+                "dominant-baseline": "central",
+              };
+          node("text", label, scale).textContent = String(mm);
+        }
+      }
+    }
+    node("path", { d: "M-49 -28H0V0H-49Z", class: "ruler-origin" }, rulers);
+    node(
+      "text",
+      { x: -24.5, y: -17, "text-anchor": "middle", class: "origin-label" },
+      rulers,
+    ).textContent = "笔起点";
+    node(
+      "text",
+      { x: -24.5, y: -5, "text-anchor": "middle", class: "origin-label" },
+      rulers,
+    ).textContent = "0,0 mm";
+    node("path", { d: "M-5 0H7 M0 -5V7", class: "origin-cross" }, rulers);
+    node("circle", { cx: 0, cy: 0, r: 2.5, class: "origin-dot" }, rulers);
   }
   function drawSelection() {
     const e = elements.find((el) => el.id === selected),
@@ -1371,6 +1443,7 @@ export function initController() {
   render();
   const paperObserver = new ResizeObserver(() => {
     fitPaper();
+    drawPaperRulers();
     const overlay = $("canvas").querySelector(".selection-overlay");
     if (overlay) overlay.remove();
     drawSelection();

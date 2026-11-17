@@ -385,9 +385,6 @@ export default function App() {
               </div>
             </div>
             <div className="stage" id="stage">
-              <div className="ruler ruler-top" aria-hidden="true" />
-              <div className="ruler ruler-left" aria-hidden="true" />
-              <span className="stage-origin">0,0 ↘</span>
               <span className="stage-label">PRECISION WRITING / TOP VIEW</span>
               <div className="board">
                 <svg

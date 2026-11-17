@@ -811,40 +811,38 @@ h3 {
     #cbcbc9 5px 10px
   );
 }
-.ruler {
-  position: absolute;
-  pointer-events: none;
+.paper-rulers {
+  font: 10px var(--mono);
+  user-select: none;
 }
-.ruler-top {
-  top: 0;
-  left: 15px;
-  right: 0;
-  height: 7px;
-  background: repeating-linear-gradient(
-    90deg,
-    #979795 0 1px,
-    transparent 1px 12px
-  );
-  opacity: 0.45;
+.paper-rulers .ruler-band {
+  fill: #eeeee9;
+  stroke: #a5a5a0;
+  stroke-width: 1;
 }
-.ruler-left {
-  top: 13px;
-  left: 0;
-  bottom: 0;
-  width: 7px;
-  background: repeating-linear-gradient(
-    0deg,
-    #979795 0 1px,
-    transparent 1px 12px
-  );
-  opacity: 0.45;
+.paper-rulers line {
+  stroke: #61615c;
+  stroke-width: 1;
 }
-.stage-origin {
-  position: absolute;
-  top: 12px;
-  left: 14px;
-  font: 7px var(--mono);
-  color: #858583;
+.paper-rulers text {
+  fill: #353530;
+}
+.paper-rulers .ruler-origin {
+  fill: #303030;
+}
+.paper-rulers .origin-label {
+  fill: var(--yellow);
+  font-weight: 700;
+}
+.paper-rulers .origin-cross {
+  fill: none;
+  stroke: #303030;
+  stroke-width: 1.5;
+}
+.paper-rulers .origin-dot {
+  fill: var(--yellow);
+  stroke: #303030;
+  stroke-width: 1;
 }
 .stage-label {
   position: absolute;
@@ -2031,4 +2029,10 @@ input[type="checkbox"],
   .studio-column > .studio {
     height: 720px;
   }
+}
+
+/* Reserve room for the paper-aligned scales at fit zoom. */
+.studio .stage {
+  padding-top: 32px;
+  padding-left: 53px;
 }
